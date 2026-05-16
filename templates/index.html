@@ -1,0 +1,248 @@
+
+<h2 class="sr-only">Credit card fraud detection model dashboard showing performance metrics, confusion matrix, and a live demo predictor</h2>
+
+<style>
+  .dash { padding: 1.5rem 0; font-family: var(--font-sans); }
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .brand { font-size: 18px; font-weight: 500; color: var(--color-text-primary); }
+  .brand span { color: #185FA5; }
+  .live-badge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-secondary); background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); padding: 4px 12px; border-radius: 100px; }
+  .live-dot { width: 6px; height: 6px; background: #3B6D11; border-radius: 50%; animation: blink 2s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 14px 16px; }
+  .metric-label { font-size: 12px; color: var(--color-text-secondary); margin-bottom: 6px; }
+  .metric-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+  .metric-sub { font-size: 11px; color: var(--color-text-tertiary); margin-top: 2px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 20px; }
+  .card-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .cm { display: grid; grid-template-columns: auto 1fr 1fr; gap: 6px; font-size: 12px; }
+  .cm-h { text-align: center; font-size: 11px; color: var(--color-text-tertiary); padding: 4px; }
+  .cm-rl { display: flex; align-items: center; font-size: 11px; color: var(--color-text-tertiary); padding-right: 8px; white-space: nowrap; }
+  .cm-cell { border-radius: var(--border-radius-md); padding: 14px 8px; text-align: center; border: 0.5px solid var(--color-border-tertiary); }
+  .cm-cell .big { font-size: 20px; font-weight: 500; display: block; }
+  .cm-cell .lbl { font-size: 10px; color: var(--color-text-tertiary); margin-top: 2px; }
+  .cm-tp { background: #EAF3DE; border-color: #97C459; }
+  .cm-tp .big { color: #3B6D11; }
+  .cm-tn { background: #EAF3DE; border-color: #97C459; }
+  .cm-tn .big { color: #3B6D11; }
+  .cm-fp { background: #FAEEDA; border-color: #EF9F27; }
+  .cm-fp .big { color: #854F0B; }
+  .cm-fn { background: #FCEBEB; border-color: #F09595; }
+  .cm-fn .big { color: #A32D2D; }
+
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 0.5px solid var(--color-border-tertiary); font-size: 13px; }
+  .stat-row:last-child { border-bottom: none; }
+  .stat-row .key { color: var(--color-text-secondary); }
+  .stat-row .val { font-weight: 500; color: var(--color-text-primary); }
+
+  .demo-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 20px; margin-bottom: 16px; }
+  .demo-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .sample-btns { display: flex; gap: 8px; margin-bottom: 16px; }
+  .sample-btn { flex: 1; padding: 9px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: var(--color-background-secondary); color: var(--color-text-primary); font-size: 13px; cursor: pointer; transition: background 0.15s; }
+  .sample-btn:hover { background: var(--color-background-tertiary); }
+  .sample-btn.active-fraud { background: #FCEBEB; border-color: #F09595; color: #A32D2D; }
+  .sample-btn.active-legit { background: #EAF3DE; border-color: #97C459; color: #3B6D11; }
+
+  .txn-info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .txn-field { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 12px; }
+  .txn-field .f-label { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 3px; }
+  .txn-field .f-val { font-size: 14px; font-weight: 500; color: var(--color-text-primary); font-family: var(--font-mono); }
+
+  .predict-btn { width: 100%; padding: 11px; background: #185FA5; color: #fff; border: none; border-radius: var(--border-radius-md); font-size: 14px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+  .predict-btn:hover { background: #0C447C; }
+  .predict-btn:disabled { background: var(--color-background-secondary); color: var(--color-text-tertiary); cursor: not-allowed; }
+
+  .result { margin-top: 14px; border-radius: var(--border-radius-md); padding: 16px; display: none; }
+  .result.legit { background: #EAF3DE; border: 0.5px solid #97C459; }
+  .result.fraud { background: #FCEBEB; border: 0.5px solid #F09595; }
+  .result.medium { background: #FAEEDA; border: 0.5px solid #EF9F27; }
+  .result-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .result-verdict { font-size: 16px; font-weight: 500; }
+  .result.legit .result-verdict { color: #3B6D11; }
+  .result.fraud .result-verdict { color: #A32D2D; }
+  .result.medium .result-verdict { color: #854F0B; }
+  .result-pct { font-size: 13px; font-family: var(--font-mono); }
+  .result.legit .result-pct { color: #3B6D11; }
+  .result.fraud .result-pct { color: #A32D2D; }
+  .result.medium .result-pct { color: #854F0B; }
+  .bar-bg { background: rgba(0,0,0,0.08); border-radius: 100px; height: 5px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 100px; transition: width 0.7s ease; }
+  .result.legit .bar-fill { background: #3B6D11; }
+  .result.fraud .bar-fill { background: #A32D2D; }
+  .result.medium .bar-fill { background: #854F0B; }
+
+  .api-note { font-size: 11px; color: var(--color-text-tertiary); margin-top: 8px; text-align: center; font-family: var(--font-mono); }
+</style>
+
+<div class="dash">
+
+  <div class="top-bar">
+    <div class="brand"><span>Fraud</span>Scan — Credit card fraud detector</div>
+    <div class="live-badge"><div class="live-dot"></div>Model loaded</div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-label">F1 score</div>
+      <div class="metric-value">0.89</div>
+      <div class="metric-sub">Fraud class</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">ROC-AUC</div>
+      <div class="metric-value">0.963</div>
+      <div class="metric-sub">Area under curve</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Precision</div>
+      <div class="metric-value">0.93</div>
+      <div class="metric-sub">When it flags fraud</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Recall</div>
+      <div class="metric-value">0.86</div>
+      <div class="metric-sub">Frauds caught</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Confusion matrix · test set (56,962 transactions)</div>
+      <div class="cm">
+        <div></div>
+        <div class="cm-h">Predicted legit</div>
+        <div class="cm-h">Predicted fraud</div>
+        <div class="cm-rl">Actual legit</div>
+        <div class="cm-cell cm-tn"><span class="big">56,858</span><div class="lbl">True negative</div></div>
+        <div class="cm-cell cm-fp"><span class="big">6</span><div class="lbl">False positive</div></div>
+        <div class="cm-rl">Actual fraud</div>
+        <div class="cm-cell cm-fn"><span class="big">14</span><div class="lbl">False negative</div></div>
+        <div class="cm-cell cm-tp"><span class="big">84</span><div class="lbl">True positive</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Model details</div>
+      <div class="stat-row"><span class="key">Algorithm</span><span class="val">Random Forest</span></div>
+      <div class="stat-row"><span class="key">Trees</span><span class="val">100</span></div>
+      <div class="stat-row"><span class="key">Decision threshold</span><span class="val">0.41 (tuned)</span></div>
+      <div class="stat-row"><span class="key">Training samples</span><span class="val">227,845</span></div>
+      <div class="stat-row"><span class="key">Frauds caught</span><span class="val">84 / 98</span></div>
+      <div class="stat-row"><span class="key">False alarms</span><span class="val">6 / 56,864</span></div>
+      <div class="stat-row"><span class="key">Dataset</span><span class="val">Kaggle · ULB 2013</span></div>
+    </div>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-title">Live demo — try a transaction</div>
+    <div class="sample-btns">
+      <button class="sample-btn" id="btnFraud" onclick="loadSample('fraud')">
+        <i class="ti ti-alert-triangle" aria-hidden="true"></i> Load fraud sample
+      </button>
+      <button class="sample-btn" id="btnLegit" onclick="loadSample('legit')">
+        <i class="ti ti-circle-check" aria-hidden="true"></i> Load legit sample
+      </button>
+    </div>
+
+    <div class="txn-info">
+      <div class="txn-field"><div class="f-label">Amount (€)</div><div class="f-val" id="f-amount">—</div></div>
+      <div class="txn-field"><div class="f-label">Time (s)</div><div class="f-val" id="f-time">—</div></div>
+      <div class="txn-field"><div class="f-label">Top signal (V14)</div><div class="f-val" id="f-v14">—</div></div>
+    </div>
+
+    <button class="predict-btn" id="predictBtn" onclick="runPredict()" disabled>
+      Select a sample above to run detection
+    </button>
+
+    <div class="result" id="resultBox">
+      <div class="result-top">
+        <div class="result-verdict" id="resultVerdict"></div>
+        <div class="result-pct" id="resultPct"></div>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" id="barFill" style="width:0%"></div></div>
+    </div>
+    <div class="api-note" id="apiNote"></div>
+  </div>
+
+</div>
+
+<script>
+const samples = {
+  fraud: {
+    Time:406, Amount:0,
+    V1:-2.3122,V2:1.9519,V3:-1.6098,V4:3.9979,V5:-0.5220,
+    V6:-1.4265,V7:-2.5374,V8:1.3913,V9:-2.7700,V10:-2.7722,
+    V11:3.2020,V12:-2.8992,V13:-0.5950,V14:-4.2895,V15:0.3898,
+    V16:-1.1407,V17:-2.8305,V18:-0.0168,V19:0.4165,V20:0.1260,
+    V21:0.5176,V22:-0.0357,V23:-0.4649,V24:-0.1835,V25:-0.3028,
+    V26:-0.1303,V27:-0.1432,V28:-0.0597
+  },
+  legit: {
+    Time:0, Amount:149.62,
+    V1:-1.3598,V2:-0.0728,V3:2.5363,V4:1.3782,V5:-0.3383,
+    V6:0.4624,V7:0.2396,V8:0.0987,V9:0.3638,V10:0.0908,
+    V11:-0.5516,V12:-0.6178,V13:-0.9913,V14:-0.3112,V15:1.4682,
+    V16:-0.4704,V17:0.2080,V18:0.0258,V19:0.4040,V20:0.2514,
+    V21:-0.0183,V22:0.2778,V23:-0.1105,V24:0.0669,V25:0.1285,
+    V26:-0.1891,V27:0.1336,V28:-0.0211
+  }
+};
+
+let current = null;
+
+function loadSample(type) {
+  current = { ...samples[type] };
+  document.getElementById('f-amount').textContent = '€' + samples[type].Amount.toFixed(2);
+  document.getElementById('f-time').textContent = samples[type].Time;
+  document.getElementById('f-v14').textContent = samples[type].V14.toFixed(4);
+  document.getElementById('resultBox').style.display = 'none';
+  document.getElementById('apiNote').textContent = '';
+
+  const btn = document.getElementById('predictBtn');
+  btn.disabled = false;
+  btn.textContent = 'Run fraud detection';
+
+  document.getElementById('btnFraud').className = 'sample-btn' + (type === 'fraud' ? ' active-fraud' : '');
+  document.getElementById('btnLegit').className = 'sample-btn' + (type === 'legit' ? ' active-legit' : '');
+}
+
+async function runPredict() {
+  if (!current) return;
+  const btn = document.getElementById('predictBtn');
+  btn.disabled = true;
+  btn.textContent = 'Calling API...';
+  document.getElementById('apiNote').textContent = '';
+
+  try {
+    const res = await fetch('http://localhost:5000/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(current)
+    });
+    const data = await res.json();
+    showResult(data);
+    document.getElementById('apiNote').textContent = 'Response from localhost:5000/predict';
+  } catch(e) {
+    document.getElementById('apiNote').textContent = 'Could not reach API — make sure app.py is running';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Run fraud detection';
+  }
+}
+
+function showResult(data) {
+  const box = document.getElementById('resultBox');
+  const pct = Math.round(data.fraud_probability * 100);
+  box.className = 'result ' + (data.risk_level === 'LOW' ? 'legit' : data.risk_level === 'HIGH' ? 'fraud' : 'medium');
+  document.getElementById('resultVerdict').textContent =
+    data.risk_level === 'LOW' ? 'Legitimate transaction' :
+    data.risk_level === 'HIGH' ? 'Fraud detected' : 'Suspicious — review needed';
+  document.getElementById('resultPct').textContent = pct + '% fraud probability';
+  box.style.display = 'block';
+  setTimeout(() => { document.getElementById('barFill').style.width = pct + '%'; }, 30);
+}
+</script>
