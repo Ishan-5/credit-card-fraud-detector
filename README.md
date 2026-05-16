@@ -61,10 +61,13 @@ credit-card-fraud-detector/
 │   ├── best_model.pkl      ← Trained Random Forest
 │   ├── scaler.pkl          ← StandardScaler for Amount & Time
 │   └── metadata.json       ← Threshold and feature names
-├── requirements.txt
+├── images/
+│   ├── img1.png      ← View of frontend
+│   ├── img2.png
 └── README.md
 ```
-
+![Frontend](images/img1.png)
+![Frontend](images/img2.png)
 ---
 
 ## API
